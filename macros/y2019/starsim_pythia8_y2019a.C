@@ -102,7 +102,7 @@ void starsim_pythia8_y2019a( Int_t nevents=10, Int_t rngSeed=1234 )
 
   gROOT->ProcessLine(".L bfc.C");
   {
-    TString simple = "y2019a geant gstar usexgeom agml sdt20140530 DbV20150316 misalign ";
+    TString simple = "y2019a geant gstar usexgeom agml ";
     bfc(0, simple );
   }
 
