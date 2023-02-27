@@ -1,0 +1,35 @@
+MACRO runPileup _
+      nevents=10 _ 
+      phys=rcf17002_0_10evts_minbias.fzd _
+      back=background.list _
+      rate=5
+
+  index = $INDEX([phys],.)
+  base  = $SUBSTRING([phys],1,[index]-1)
+  prob  = [rate]/10.0 
+  message [index] [base] [rate]MHz [prob] 
+  
+
+  * Open physics file
+  gfile p [phys]
+  * Open background list
+  gfile bt [back]
+
+  * Open output file
+  gfile o [base]_[rate]MHz.fzd
+
+  * 376 bxings at 106.5 ns spacing is 40us nominal TPC window
+  * mode tpce back 3761376 
+  * 470 bxings at 106.5 ns spacing is 50us readout TPC window 
+  mode tpce back 4701470 
+
+  * Setup pileup probabilities
+  gback 470 470 [prob] 106.5 1.5
+
+  * Run the simulation
+  trig [nevents]
+
+  EXIT
+
+RETURN
+

@@ -1,0 +1,184 @@
+MACRO runFilteredStarsim nevents=1000 run=11010 set=1 
+
+   LIBRARY =                                        $STAR_LIB
+   BINARY  =                                        $STAR_BIN
+   TAG     =                                           y2005i
+   FIELD   =                                             +5.0
+   PYTHIA  =                               libPythia6_4_23.so
+   PYTUNE  =                                              329
+
+   PTmin   =                                            0.000
+   PTmax   =                                          100.000
+   ETAmin  =                                          -2.5
+   ETAmax  =                                          +2.5
+   Zmin    =                                         -200.000
+   Zmax    =                                         +200.000
+
+   Luxury  =                                                3
+   Seed    =                                      [run]//[set]
+
+   XVERTEX  =                                          0.000
+   YVERTEX  =                                          0.000
+   ZVERTEX  =                                          0.000
+
+   XSIGMA   =                                          0.010
+   YSIGMA   =                                          0.010
+   ZSIGMA   =                                         60.000
+
+**
+** Build the geometry and load shared libraries
+**
+   MESSAGE ''
+   MESSAGE '================================================================================='
+   MESSAGE '                                                             ' $TIME $DATE
+   MESSAGE Geometry: [tag]
+   MESSAGE Library:  [library]
+   MESSAGE Pythia:   [pythia]
+   MESSAGE Field:    [field] 
+   MESSAGE Tune:     [pytune]
+   MESSAGE ''
+   MESSAGE Ranlux configuration:
+   MESSAGE   seed   = [seed]
+   MESSAGE   luxury = [luxury]
+   MESSAGE Vertex distribution:
+   MESSAGE   x = [xvertex] +/- [xsigma]
+   MESSAGE   y = [yvertex] +/- [ysigma]
+   MESSAGE   z = [zvertex] +/- [zsigma]
+   MESSAGE ''
+   MESSAGE '=================================================================================='
+   MESSAGE ''
+
+   DETP geom [tag] field=[field]
+   gexec $STAR_LIB/geometry.so
+***gexec $STAR_LIB/gstar.so
+   gclos all
+
+   swit 1 2        !the content of the temporary stack for secondaries in the common /GCKING/ is printed;
+
+**
+** Setup random number seed and switch random number generators
+** to ranlux with luxury level 3.  Will ensure independent seeds
+** for up to 9999 different sets in the run
+**
+   RANLUX [seed] [luxury]
+
+
+**
+** Open the output file
+**
+   FILE     = rcf[RUN]_[SET]_[NEVENTS]evts.fzd
+   gfile o [FILE]
+
+**
+** Initialize pythia, setup the filter, vertex, etc...  Filter only
+** on the filtered sample
+**
+   exec select_pythia [PYTHIA] [LIBRARY]
+   tune [pytune]
+
+**
+** Initialize the filter
+**
+   if ( [run]=11010 ) then
+      Message Initialize high pt filter for charged hadrons
+      exec initFilter
+   elseif ( [run]=11011 ) then
+      Message Initialize high pt filter for charged hadrons
+      exec initFilter
+   elseif ( [run]=11012 ) then
+      Message Initiallizing a minimum bias run
+   endif
+
+
+**************************************************************************
+**
+** Configure pythia processes
+**
+**************************************************************************
+   ENER=200.0
+   MSEL=1
+   FOR id in 11 12 13 28 53 68 93 95
+     MSUB([id])=1
+   ENDFOR
+
+   CKIN 3= 0.0
+   CKIN 4=-1.0
+
+
+   gvertex [XVERTEX] [YVERTEX] [ZVERTEX]
+   gspread [XSIGMA]  [YSIGMA]  [ZSIGMA]
+
+*  AGUSER/GKINE NTRACK ID [ PTLOW PTHIGH YLOW YHIGH PHILOW PHIHIGH ZLOW ZHIGH option ]
+   aguser/gkine  -4    0    0.    650.0  [ETAmin] [ETAmax] 0. 6.29 [Zmin] [Zmax]
+
+**
+** Perform the event loop
+**
+   DO i=1,[nevents]
+      trig 1
+      MESSAGE Done processing event [i]/[nevents]
+   ENDDO
+
+   call pystat(1)
+
+   EXIT
+
+RETURN  
+   
+****************************************************************************************************
+** MACRO select_pythia
+**
+** Selects the pythia library and loads the interactive pythia command definitions.  Additionally,
+** it flags several decay modes as stable so that geant will handle them.
+**
+MACRO select_pythia pythia=libpythia_6410t.so path=$STAR_LIB
+
+** message Loading [path]/[pythia]
+   GExec [path]/[pythia]
+** message Loading [path]/bpythia.so
+   GExec [path]/bpythia.so
+
+   ****************************************************************
+   MDCY (102,1)=0  ! PI0 111 (no decay to hadrons)
+   MDCY (106,1)=0  ! PI+ 211 (no decay to hadrons)
+** MDCY (109,1)=0  ! ETA 221 (neutral, short lived, significant decay to charged hadrons)
+   MDCY (116,1)=0  ! K+ 321  (long lived + hadronic decay modes... is in filter)
+
+** MDCY (112,1)=0  ! K_SHORT 310 (short lived... pythia can decay it)
+** MDCY (105,1)=0  ! K_LONG 130  (long lived, but not significant source of charged hadrons?)
+
+** MDCY (164,1)=0  ! LAMBDA0 3122 (short lived)
+** MDCY (167,1)=0  ! SIGMA0 3212
+** MDCY (162,1)=0  ! SIGMA- 3112
+** MDCY (169,1)=0  ! SIGMA+ 3222
+** MDCY (172,1)=0  ! Xi- 3312
+** MDCY (174,1)=0  ! Xi0 3322
+** MDCY (176,1)=0  ! OMEGA- 3334
+   ****************************************************************
+
+Return
+
+
+
+MACRO initFilter
+
+** Load the filtering libraries
+   exec loadlibs   
+
+** Initialize the filter
+   gfilt highpt
+
+RETURN
+
+MACRO loadlibs
+*** Loads a minimal set of ROOT libraries and establishes the
+*** interface with the MC filter 
+
+ gexec $ROOTSYS/lib/libCint.so
+ gexec $ROOTSYS/lib/libCore.so
+ gexec $ROOTSYS/lib/libMathCore.so
+ gexec $ROOTSYS/lib/libMatrix.so
+ gexec $ROOTSYS/lib/libPhysics.so
+ gexec $STAR_LIB/StMCFilter.so
+
+RETURN

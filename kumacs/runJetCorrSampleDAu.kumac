@@ -1,0 +1,145 @@
+MACRO runJetCorrSample nevents=100 run=11003 set=1 
+
+   LIBRARY =                                        $STAR_LIB
+   BINARY  =                                        $STAR_BIN
+   TAG     =                                           y2008e
+   FIELD   =                                             -5.0
+
+
+
+   PTmin   =                                            0.000
+   PTmax   =                                          100.000
+   ETAmin  =                                          -6.0
+   ETAmax  =                                          +6.0
+   Zmin    =                                         -200.000
+   Zmax    =                                         +200.000
+
+   Luxury  =                                                3
+   Seed    =                                      [run]//[set]
+
+   XVERTEX  =                                     0.000
+   YVERTEX  =                                     0.000
+   ZVERTEX  =                                     0.000
+
+   XSIGMA   =                                     0.010
+   YSIGMA   =                                     0.010
+   ZSIGMA   =                                    60.000
+
+**
+** Build the geometry and load shared libraries
+**
+   MESSAGE ''
+   MESSAGE '================================================================================='
+   MESSAGE '                                                             ' $TIME $DATE
+   MESSAGE Geometry: [tag]
+   MESSAGE Library:  [library]
+   MESSAGE Field:    [field] 
+   MESSAGE ''
+   MESSAGE Ranlux configuration:
+   MESSAGE   seed   = [seed]
+   MESSAGE   luxury = [luxury]
+   MESSAGE Vertex distribution:
+   MESSAGE   x = [xvertex] +/- [xsigma]
+   MESSAGE   y = [yvertex] +/- [ysigma]
+   MESSAGE   z = [zvertex] +/- [zsigma]
+
+   EXEC SetupHijing [run] [nevents]
+
+   MESSAGE ''
+   MESSAGE '=================================================================================='
+   MESSAGE ''
+
+
+   DETP geom [tag] field=[field]
+   gexec $STAR_LIB/geometry.so
+   gexec $STAR_LIB/gstar.so
+** gexec .$STAR_HOST_SYS/lib/gstar.so
+   gclos all
+
+   swit 1 2        !the content of the temporary stack for secondaries in the common /GCKING/ is printed;
+
+**
+** Setup random number seed and switch random number generators
+** to ranlux with luxury level 3.  Will ensure independent seeds
+** for up to 9999 different sets in the run
+**
+   RANLUX [seed] [luxury]
+
+   gvertex [XVERTEX] [YVERTEX] [ZVERTEX]
+   gspread [XSIGMA]  [YSIGMA]  [ZSIGMA]
+
+
+
+*  AGUSER/GKINE NTRACK ID [ PTLOW PTHIGH YLOW YHIGH PHILOW PHIHIGH ZLOW ZHIGH option ]
+   aguser/gkine  -2    0    0.    650.0  [ETAmin] [ETAmax] 0. 6.29 [Zmin] [Zmax]
+   user/input please evgen.1.nt
+
+   exec loadlibs  
+   gfilt fmsfilt
+
+** Open the output file
+   FILE     = rcf[RUN]_[SET]_[NEVENTS]evts.fzd
+   gfile o [FILE]
+
+
+
+**
+** Perform the event loop
+**
+   DO i=0,[nevents]
+      trig 1
+   ENDDO
+
+   EXIT
+
+RETURN  
+
+
+   
+MACRO SetupHijing run nevents
+
+   ***********************************************************
+   IF ( [run].eq.11002 ) THEN
+   MESSAGE Shadowing off (ihpr2(6)=0)
+   SHELL hijing_382 -inp hijev_shadowing.inp
+   ENDIF
+   ***********************************************************
+
+
+   ***********************************************************
+   IF ( [run].eq.11003 ) THEN
+   MESSAGE Shadowing on  (ihpr2(6)=1)
+   SHELL hijing_382 -inp hijev_noshadowing.inp
+   ENDIF
+   ***********************************************************
+
+RETURN
+
+
+
+
+MACRO load lib
+
+  if ( $FEXIST('.sl53_gcc432/lib/'//[lib])=1 ) then
+     MESSAGE Load .$STAR_HOST_SYS/lib/[lib]
+     gexec .$STAR_HOST_SYS/lib/[lib]
+  else
+     MESSAGE Load $STAR_LIB/[lib]
+     gexec $STAR_LIB/[lib]
+  endif
+
+MACRO loadlibs
+
+*gexec $STAR_LIB/geometry.so
+*gexec $STAR_LIB/libpythia_6410t.so
+*gexec $STAR_LIB/bpythia.so
+ gexec $ROOTSYS/lib/libCint.so
+ gexec $ROOTSYS/lib/libCore.so
+ gexec $ROOTSYS/lib/libMathCore.so
+ gexec $ROOTSYS/lib/libMatrix.so
+ gexec $ROOTSYS/lib/libPhysics.so
+
+*gexec $STAR_LIB/StMCFilter.so
+ exec load StMCFilter.so
+
+RETURN

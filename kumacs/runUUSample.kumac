@@ -1,0 +1,82 @@
+
+MACRO runAuAuSample nevents=10 run=17010 set=1 TAG=y2012a field=-5.0
+
+   LIBRARY =                                        $STAR_LIB
+   BINARY  =                                        $STAR_BIN
+
+   PTmin   =                                            0.000
+   PTmax   =                                          100.000
+   ETAmin  =                                          -3.0
+   ETAmax  =                                          +3.0
+   Zmin    =                                         -50.000
+   Zmax    =                                         +50.000
+
+   Luxury  =                                                3
+   Seed    =                                      [run]//[set]
+
+   XVERTEX  =                                     0.2359
+   YVERTEX  =                                    -0.1138
+   ZVERTEX  =                                     0.8255
+
+   XSIGMA   =                                     0.0465
+   YSIGMA   =                                     0.0372
+   ZSIGMA   =                                    15.5
+
+**
+** Build the geometry and load shared libraries
+**
+   MESSAGE ''
+   MESSAGE '================================================================================='
+   MESSAGE '                                                             ' $TIME $DATE
+   MESSAGE Geometry: [tag]
+   MESSAGE Library:  [library]
+   MESSAGE Field:    [field] 
+   MESSAGE ''
+   MESSAGE Ranlux configuration:
+   MESSAGE   seed   = [seed]
+   MESSAGE   luxury = [luxury]
+   MESSAGE Vertex distribution:
+   MESSAGE   x = [xvertex] +/- [xsigma]
+   MESSAGE   y = [yvertex] +/- [ysigma]
+   MESSAGE   z = [zvertex] +/- [zsigma]
+
+   MESSAGE ''
+   MESSAGE '=================================================================================='
+   MESSAGE ''
+
+   DETP geom [tag] field=[field]
+   gexec $STAR_LIB/xgeometry.so
+   gexec $STAR_LIB/libgstar.so
+   gclos all
+
+**
+** Setup random number seed and switch random number generators
+** to ranlux with luxury level 3.  Will ensure independent seeds
+** for up to 9999 different sets in the run
+**
+   RANLUX [seed] [luxury]
+
+**
+** Open the output file
+**
+   FILE     = rcf[RUN]_[SET]_[NEVENTS]evts.fzd
+   gfile o [FILE]
+
+   gvertex [XVERTEX] [YVERTEX] [ZVERTEX]
+   gspread [XSIGMA]  [YSIGMA]  [ZSIGMA]
+
+*  AGUSER/GKINE NTRACK ID [ PTLOW PTHIGH YLOW YHIGH PHILOW PHIHIGH ZLOW ZHIGH option ]
+   aguser/gkine  -2    0    0.    650.0  [ETAmin] [ETAmax] 0. 6.29 [Zmin] [Zmax]
+   USER/INPUT please evgen.1.nt
+
+**
+** Perform the event loop
+**
+   DO i=0,[nevents]
+      Message Event [i] of [nevents]
+      trig 1
+   ENDDO
+
+   EXIT
+
+RETURN

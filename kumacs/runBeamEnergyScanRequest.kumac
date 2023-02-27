@@ -1,0 +1,109 @@
+MACRO runBeamEnergyScanRequest name=blah set=1 nevents=1 control=control.hijing run=10030
+
+* Request ID	afaec4240d8926a34c4a9a7ac2e653b1
+* http://drupal.star.bnl.gov/STAR/starsimrequests/2010/apr/05/beam-energy-scan-request-auau-collisions-energy-77-gev-39-gev-and-115-gev
+
+*************************************************************
+** Configuration
+**
+
+   LIBRARY =                                        $STAR_LIB
+   BINARY  =                                        $STAR_BIN
+   TAG     =                                           y2010a
+   FIELD   =                                             +5.0
+
+   HIJING  =                                       hijing_382  
+
+   PTmin   =                                            0.000
+   PTmax   =                                          100.000
+   ETAmin  =                                          -6.0
+   ETAmax  =                                          +6.0
+   Zmin    =                                         -200.000
+   Zmax    =                                         +200.000
+
+**
+*************************************************************
+
+
+
+*************************************************************
+** Setup random number generator
+   PID = $PID
+*  TIME = $shell('date +%s')
+*  NANO = $shell('date +%N')
+*  TIME = [TIME] + 1000000*[SET]
+
+   RNDM [SET] [PID]
+
+
+
+*************************************************************
+** Setup Geometry
+   DETP GEOM [TAG] field=[FIELD]
+   GEXEC [LIBRARY]/geometry.so
+   GEXEC [LIBRARY]/gstar.so
+   GCLOS all
+
+*************************************************************
+** Setup interaction region
+
+   EXEC configure run=[run]
+
+
+*************************************************************
+** Setup data input
+   MESSAGE Generating input events
+   GKINE -1 0 [PTmin] [PTmax] [ETAmin] [ETAmax] 0.000 6.283 [Zmin] [Zmax]
+   USER/INPUT please evgen.[set].nt
+
+
+*************************************************************
+** Setup output file and generate events
+   MESSAGE Running GEANT simulation output is [NAME].fzd
+   GFILE o [NAME].fzd
+   TRIG [nevents]
+
+   EXIT
+
+RETURN
+
+
+MACRO configure run=10030
+
+  GDEBUG 1
+
+  CM = 1.0
+
+  XVERTEX = +0.286 *[CM]
+  YVERTEX = -0.014 *[CM]
+  ZVERTEX = -0.779 *[CM]
+  XSIGMA  = +0.10  *[CM]
+  YSIGMA  = +0.11  *[CM]
+  ZSIGMA  = +29.34 *[CM]
+
+  MESSAGE VX=[XVERTEX] VY=[YVERTEX] VZ=[ZVERTEX]
+  MESSAGE SX=[XSIGMA] SY=[YSIGMA] SZ=[ZSIGMA]
+
+  IF ( [run] .eq. 10030 ) THEN
+     MESSAGE Configure for run 10030 / 7.7 GeV
+     ZVERTEX = +0.66 *[CM]
+     ZSIGMA = +90.0 *[CM]
+  ENDIF
+
+  IF ( [run] .eq. 10031 ) THEN
+     MESSAGE Configure for run 10031 / 11.5 GeV
+     ZVERTEX = +0.66 *[CM]
+     ZSIGMA  = +90.0 *[CM]
+  ENDIF
+
+  IF ( [run] .eq. 10032 ) THEN
+     MESSAGE Configure for run 10032 / 39.5 GeV
+  ENDIF
+
+  GVERTEX [XVERTEX] [YVERTEX] [ZVERTEX]
+  GSPREAD [XSIGMA]  [YSIGMA]  [ZSIGMA]
+
+  GDEBUG 0
+
+
+RETURN

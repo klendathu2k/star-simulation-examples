@@ -1,0 +1,155 @@
+MACRO runJetCorrSample nevents=1000 run=11020 set=1 
+
+   LIBRARY =                                        $STAR_LIB
+   BINARY  =                                        $STAR_BIN
+   TAG     =                                           y2006h
+   FIELD   =                                             -5.0
+   PYTHIA  =                               libPythia6_4_23.so
+
+
+   PTmin   =                                            0.000
+   PTmax   =                                          100.000
+   ETAmin  =                                          -2.0
+   ETAmax  =                                          +3.0
+   Zmin    =                                         -200.000
+   Zmax    =                                         +200.000
+
+   Luxury  =                                                3
+   Seed    =                                      [run]//[set]
+
+   ENER     =                                     62.0
+   PYTUNE   =                                     329 
+
+   XVERTEX  =                                     0.000
+   YVERTEX  =                                     0.000
+   ZVERTEX  =                                     0.000
+
+   XSIGMA   =                                     0.010
+   YSIGMA   =                                     0.010
+   ZSIGMA   =                                    60.000
+
+
+**
+** Build the geometry and load shared libraries
+**
+   MESSAGE ''
+   MESSAGE '================================================================================='
+   MESSAGE '                                                             ' $TIME $DATE
+   MESSAGE Geometry: [tag]
+   MESSAGE Library:  [library]
+   MESSAGE Pythia:   [pythia]
+   MESSAGE Field:    [field] 
+   MESSAGE ''
+   MESSAGE Ranlux configuration:
+   MESSAGE   seed   = [seed]
+   MESSAGE   luxury = [luxury]
+   MESSAGE Vertex distribution:
+   MESSAGE   x = [xvertex] +/- [xsigma]
+   MESSAGE   y = [yvertex] +/- [ysigma]
+   MESSAGE   z = [zvertex] +/- [zsigma]
+   MESSAGE ''
+   MESSAGE '=================================================================================='
+   MESSAGE ''
+
+   DETP geom [tag] field=[field]
+   gexec $STAR_LIB/geometry.so
+   gexec $STAR_LIB/gstar.so
+   gclos all
+
+   swit 1 2        !the content of the temporary stack for secondaries in the common /GCKING/ is printed;
+
+**
+** Setup random number seed and switch random number generators
+** to ranlux with luxury level 3.  Will ensure independent seeds
+** for up to 9999 different sets in the run
+**
+   RANLUX [seed] [luxury]
+
+
+**
+** Open the output file
+**
+   FILE     = rcf[RUN]_[SET]_[NEVENTS]evts.fzd
+   gfile o [FILE]
+
+**
+** Initialize pythia, setup the filter, vertex, etc...  Filter only
+** on the filtered sample
+**
+   exec select_pythia [PYTHIA] [LIBRARY]
+
+**
+** Configure pythia processes
+**
+   MSEL=0
+   TUNE [pytune]
+   FOR id in 11 12 13 28 53 68 93 95
+     MSUB([id])=1
+   ENDFOR
+
+   gvertex [XVERTEX] [YVERTEX] [ZVERTEX]
+   gspread [XSIGMA]  [YSIGMA]  [ZSIGMA]
+
+*  AGUSER/GKINE NTRACK ID [ PTLOW PTHIGH YLOW YHIGH PHILOW PHIHIGH ZLOW ZHIGH option ]
+   aguser/gkine  -4    0    0.    650.0  [ETAmin] [ETAmax] 0. 6.29 [Zmin] [Zmax]
+
+**
+** Perform the event loop
+**
+   DO i=1,[nevents]
+      trig 1
+      MESSAGE Done with event [i] / [nevents]
+   ENDDO
+
+   call pystat(1)
+
+   EXIT
+
+RETURN  
+
+
+MACRO loadlibs
+
+*gexec $STAR_LIB/geometry.so
+*gexec $STAR_LIB/libpythia_6410t.so
+*gexec $STAR_LIB/bpythia.so
+ gexec $ROOTSYS/lib/libCint.so
+ gexec $ROOTSYS/lib/libCore.so
+ gexec $ROOTSYS/lib/libMathCore.so
+ gexec $ROOTSYS/lib/libMatrix.so
+ gexec $ROOTSYS/lib/libPhysics.so
+ gexec $STAR_LIB/StMCFilter.so
+
+RETURN
+   
+****************************************************************************************************
+** MACRO select_pythia
+**
+** Selects the pythia library and loads the interactive pythia command definitions.  Additionally,
+** it flags several decay modes as stable so that geant will handle them.
+**
+MACRO select_pythia pythia=libpythia_6410t.so path=$STAR_LIB
+
+** message Loading [path]/[pythia]
+   GExec [path]/[pythia]
+** message Loading [path]/bpythia.so
+   GExec [path]/bpythia.so
+
+   ****************************************************************
+   ** These particles will be decayed by geant instead of pythia **
+   MDCY (102,1)=0  ! PI0 111
+   MDCY (106,1)=0  ! PI+ 211
+   MDCY (109,1)=0  ! ETA 221
+   MDCY (116,1)=0  ! K+ 321
+   MDCY (112,1)=0  ! K_SHORT 310
+   MDCY (105,1)=0  ! K_LONG 130
+   MDCY (164,1)=0  ! LAMBDA0 3122
+   MDCY (167,1)=0  ! SIGMA0 3212
+   MDCY (162,1)=0  ! SIGMA- 3112
+   MDCY (169,1)=0  ! SIGMA+ 3222
+   MDCY (172,1)=0  ! Xi- 3312
+   MDCY (174,1)=0  ! Xi0 3322
+   MDCY (176,1)=0  ! OMEGA- 3334
+   ****************************************************************
+
+Return

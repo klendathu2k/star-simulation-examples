@@ -1,0 +1,223 @@
+**************************************************************************************************** 
+** MACRO runPhotonSimu
+** 
+** Proposed tags:
+** tag.pp200.pythia6_4_23.eemcGammaFilter.tune329.y2006h.gheisha_on 
+** tag.pp200.pythia6_4_23.eemcGammaFilter.tune329.y2006h.gheisha_on 
+**
+MACRO runPhotonSimu NEVENTS=10 RUN=10060 SET=1000 roots=200 WHERE=rcf
+
+                                                              ** run configuration
+   LIBRARY  =                                 $STAR_LIB 
+   TAG      =                                    y2006h
+                                                              ** pythia configuration
+   PYTHIA   =                        libPythia6_4_23.so
+   ETAmin   =                                      -5.0
+   ETAmax   =                                      +5.0 
+
+   Zmin     =                                    -120.0
+   Zmax     =                                    +120.0
+
+                                                               ** vertex in cm
+   XVERTEX  =                                    -0.300 
+   YVERTEX  =                                     0.000
+   ZVERTEX  =                                     0.000
+
+   XSIGMA   =                                     0.000 
+   YSIGMA   =                                     0.000
+   ZSIGMA   =                                    55.000
+
+
+                                                                ** output file
+   FILE     = [WHERE][RUN]_[SET]_[NEVENTS]evts.fzd
+   gfile o [FILE]
+                                                                ** setup random number generator
+                                                                ** run number, and starting event
+   rndm [SET] [RUN]
+   istart=[SET]
+   rung [RUN] [istart]
+                                                                ** setup geometry 
+   detp    geom [TAG] 
+   gexec   [LIBRARY]/geometry.so
+   gexec   [LIBRARY]/gstar.so
+   gclose  all
+
+                                                                ** configure pythia
+   exec select_pythia [PYTHIA] [LIBRARY]                        ** select pythia version 
+   TFM = "http://projects.hepforge.org/pythia6/"                ** RTFM for more information
+
+                                                                ** load filtering library
+   exec $STAR/StRoot/StMCFilter/loadlibs.kumac
+                                                                ** Setup the filter
+   gfilt eemcGammaFilter.1.00
+                                                  
+                                                                ** setup the collision kinematics for pythia
+   exe setup_job [run] [roots]
+
+   gvertex [XVERTEX] [YVERTEX] [ZVERTEX]
+   gspread [XSIGMA]  [YSIGMA]  [ZSIGMA]
+
+*  AGUSER/GKINE NTRACK ID [ PTLOW PTHIGH YLOW YHIGH PHILOW PHIHIGH ZLOW ZHIGH option ]
+   aguser/gkine  -4    0    0.    650.0  [ETAmin] [ETAmax] 0. 6.29 [Zmin] [Zmax]
+
+                                                                ** setup histograms w/ title
+   title [file] [tag] [run] [set] [pythia]
+
+                                                                ** trigger and list one event
+   DO i=1,[nevents]     
+                                                                ** set the event vertex
+                                                                ** run the rest of the simulation
+     TRIG 1
+     IF ( [i].eq.1 ) THEN
+        gprint vert 
+        call pylist(1)
+     ENDIF
+
+   ENDDO
+
+   MESSAGE ========================================================================================
+   CALL PySTAT(1)
+                                                                 ** this is the end of starsim
+   EXIT
+   
+Return
+
+****************************************************************************************************
+** MACRO setup_job run
+**
+** Sets run-dependent parameters, such as partonic pT bins
+**
+MACRO setup_job run roots
+
+   frame CMS
+   beam  p p
+   ener  [ROOTS]                          
+
+**
+** Setup job-dependent CKIN cuts
+**
+
+                                                                     ** Background
+   IF      ( [run] .eq. 10060 ) THEN
+     CKIN 3=4
+     CKIN 4=6
+     exe select_background
+   ELSEIF ( [run] .eq. 10061 ) THEN
+     CKIN 3=6
+     CKIN 4=9
+     exe select_background
+   ELSEIF ( [run] .eq. 10062 ) THEN
+     CKIN 3=9
+     CKIN 4=15
+     exe select_background
+   ELSEIF ( [run] .eq. 10063 ) THEN
+     CKIN 3=15
+     CKIN 4=35
+     exe select_background
+                                                                     ** Signal
+   ELSEIF ( [run] .eq. 10070 ) THEN
+     CKIN 3=2
+     CKIN 4=3
+     exe select_signal
+   ELSEIF ( [run] .eq. 10071 ) THEN
+     CKIN 3=3
+     CKIN 4=4
+     exe select_signal
+   ELSEIF ( [run] .eq. 10072 ) THEN
+     CKIN 3=4
+     CKIN 4=6
+     exe select_signal
+   ELSEIF ( [run] .eq. 10073 ) THEN
+     CKIN 3=6
+     CKIN 4=9
+     exe select_signal
+   ELSEIF ( [run] .eq. 10074 ) THEN
+     CKIN 3=9
+     CKIN 4=15
+     exe select_signal
+   ELSEIF ( [run] .eq. 10075 ) THEN
+     CKIN 3=15
+     CKIN 4=35
+     exe select_signal
+   ELSE
+     MESSAGE "Job ID is out of range"
+     EXIT
+   ENDIF
+
+**
+** Pythia tune
+**
+   TUNE 329     !- pro-pt0
+   Call PySTAT(1)
+
+RETURN
+
+****************************************************************************************************
+** MACRO select_background
+**
+** Selects the QCD background channel
+MACRO select_background
+** 
+** Subprocess selection
+**
+   MSEL 0
+   MSUB (11)=1 
+   MSUB (12)=1 
+   MSUB (13)=1 
+   MSUB (28)=1 
+   MSUB (53)=1 
+   MSUB (68)=1 
+**
+RETURN
+
+
+****************************************************************************************************
+** MACRO select_signal
+**
+** Selects the prompt photon signal process(es)
+MACRO select_signal
+** 
+** Subprocess selection
+**
+   MSEL 0
+   MSUB (14)=1
+   MSUB (18)=1        
+   MSUB (29)=1        
+   MSUB (114)=1       
+   MSUB (115)=1
+**
+RETURN
+
+
+****************************************************************************************************
+** MACRO select_pythia
+**
+** Selects the pythia library and loads the interactive pythia command definitions.  Additionally,
+** it flags several decay modes as stable so that geant will handle them.
+**
+MACRO select_pythia pythia=libpythia_6410t.so path=$STAR_LIB
+
+** message Loading [path]/[pythia]
+   GExec [path]/[pythia]
+** message Loading [path]/bpythia.so
+   GExec [path]/bpythia.so
+
+   ****************************************************************
+   ** These particles will be decayed by geant instead of pythia **
+   MDCY (102,1)=0  ! PI0 111
+   MDCY (106,1)=0  ! PI+ 211
+   MDCY (109,1)=0  ! ETA 221
+   MDCY (116,1)=0  ! K+ 321
+   MDCY (112,1)=0  ! K_SHORT 310
+   MDCY (105,1)=0  ! K_LONG 130
+   MDCY (164,1)=0  ! LAMBDA0 3122
+   MDCY (167,1)=0  ! SIGMA0 3212
+   MDCY (162,1)=0  ! SIGMA- 3112
+   MDCY (169,1)=0  ! SIGMA+ 3222
+   MDCY (172,1)=0  ! Xi- 3312
+   MDCY (174,1)=0  ! Xi0 3322
+   MDCY (176,1)=0  ! OMEGA- 3334
+   ****************************************************************
+
+Return
+

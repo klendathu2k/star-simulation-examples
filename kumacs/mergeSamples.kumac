@@ -1,0 +1,17 @@
+MACRO mergesamples NEVENTS=100 RUN=10050 SET=1000 roots=200 WHERE=rcf
+
+   outpfile=[WHERE][RUN]_[SET]_[NEVENTS]evts.fzd
+   partfile=[WHERE][RUN]_[SET]_[NEVENTS]evts_pythia.fzd
+   basefile=[WHERE][RUN]_[SET]_[NEVENTS]evts_10e.fzd
+
+   gfile o [outpFile]
+   gfile p [partFile]
+   gfile b [baseFile]
+   gexec $STAR_LIB/gstar.so
+   gback 0 0 -1 0 0
+ 
+   trig [nevents]
+
+   EXIT
+
+RETURN

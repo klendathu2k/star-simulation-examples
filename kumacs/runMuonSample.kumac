@@ -1,0 +1,91 @@
+MACRO runMuonSample nevents=100 run=11020 set=1 
+
+   LIBRARY =                                        $STAR_LIB
+   BINARY  =                                        $STAR_BIN
+   TAG     =                                            y2011
+   FIELD   =                                             -5.0
+
+
+   PTmin   =                                            1.000
+   PTmax   =                                           50.000
+   ETAmin  =                                          -3.0
+   ETAmax  =                                          +3.0
+   Zmin    =                                         -200.000
+   Zmax    =                                         +200.000
+
+   Luxury  =                                                3
+   Seed    =                                      [run]//[set]
+
+   XVERTEX  =                                     0.000
+   YVERTEX  =                                     0.000
+   ZVERTEX  =                                   -15.000
+
+   XSIGMA   =                                     0.010
+   YSIGMA   =                                     0.010
+   ZSIGMA   =                                     0.010
+
+**
+** Build the geometry and load shared libraries
+**
+   MESSAGE ''
+   MESSAGE '================================================================================='
+   MESSAGE '                                                             ' $TIME $DATE
+   MESSAGE Geometry: [tag]
+   MESSAGE Library:  [library]
+   MESSAGE Field:    [field] 
+   MESSAGE ''
+   MESSAGE Ranlux configuration:
+   MESSAGE   seed   = [seed]
+   MESSAGE   luxury = [luxury]
+   MESSAGE Vertex distribution:
+   MESSAGE   x = [xvertex] +/- [xsigma]
+   MESSAGE   y = [yvertex] +/- [ysigma]
+   MESSAGE   z = [zvertex] +/- [zsigma]
+
+   MESSAGE ''
+   MESSAGE '=================================================================================='
+   MESSAGE ''
+
+
+   DETP geom [tag] field=[field]
+   gexec $STAR_LIB/geometry.so
+** gexec $STAR_LIB/gstar.so
+   gclos all
+
+   swit 1 2        !the content of the temporary stack for secondaries in the common /GCKING/ is printed;
+
+**
+** Setup random number seed and switch random number generators
+** to ranlux with luxury level 3.  Will ensure independent seeds
+** for up to 9999 different sets in the run
+**
+   RANLUX [seed] [luxury]
+
+**
+** Open the output file
+**
+   FILE     = rcf[RUN]_[SET]_[NEVENTS]evts.fzd
+   gfile o [FILE]
+
+   gvertex [XVERTEX] [YVERTEX] [ZVERTEX]
+   gspread [XSIGMA]  [YSIGMA]  [ZSIGMA]
+
+**
+** Perform the event loop
+**
+   DO i=0,[nevents]/2
+
+      MESSAGE Event [i] / [nevents]
+
+*     AGUSER/GKINE NTRACK ID [ PTLOW PTHIGH YLOW YHIGH PHILOW PHIHIGH ZLOW ZHIGH option ]
+      AgUser/GKine  25    5  [ptmin] [ptmax] [ETAmin] [ETAmax] 0. 6.29 [Zmin] [Zmax]
+      trig 1
+      AgUser/GKine  25    6  [ptmin] [ptmax] [ETAmin] [ETAmax] 0. 6.29 [Zmin] [Zmax]
+      trig 1
+
+   ENDDO
+
+   EXIT
+
+RETURN  
+

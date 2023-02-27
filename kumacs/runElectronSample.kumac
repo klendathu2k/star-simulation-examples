@@ -1,0 +1,72 @@
+**************************************************************************************************** 
+** MACRO runElectronSample
+** 
+** tag.pp200.pythia6_4_22.tune320.y2005i.gheisha_on 
+**
+MACRO runElectronSample NEVENTS=10 RUN=10050 SET=1000 roots=200 WHERE=rcf VTX=vertex.dat
+
+                                                              ** run configuration
+   LIBRARY  =                                 $STAR_LIB 
+   TAG      =                                    y2005i
+                                                              ** pythia configuration
+   ETAmin   =                                     -10.0 
+   ETAmax   =                                     +10.0 
+
+                                                               ** vertex in cm
+   XVERTEX  =                                     0.000 
+   YVERTEX  =                                     0.000
+   ZVERTEX  =                                     0.000
+
+   XSIGMA   =                                     0.010 
+   YSIGMA   =                                     0.010
+   ZSIGMA   =                                    60.000
+
+   VTX_FILE = [WHERE][RUN]_[SET]_[NEVENTS]evts.vertex
+   v/cr v([NEVENTS])  I
+   v/cr vx([NEVENTS]) R
+   v/cr vy([NEVENTS]) R
+   v/cr vz([NEVENTS]) R
+   v/read v,vx,vy,vz [VTX]     
+
+   FILE     = [WHERE][RUN]_[SET]_[NEVENTS]evts_10e.fzd
+   gfile o [FILE]
+                                                                ** setup random number generator               
+                                                                ** run number, and starting event
+   SSS=[SET]+1000
+   rndm [SSS] [RUN]
+   istart=[SET]-1000
+   rung [RUN] [istart]
+                                                                ** setup geometry 
+   detp    geom [TAG] 
+   gexec   [LIBRARY]/geometry.so
+   gexec   [LIBRARY]/gstar.so
+   gclose  all
+
+                                                                ** configure pythia                                                                ** setup histograms w/ title
+   title [file] [tag] [run] [set] 10_electrons
+
+   aguser/gkine ntrack=10 id=3 ptlow=0.0  pthigh=10.0  _
+                               ylow=0.0   yhigh=1.0    _
+                               philow=0.0 phihigh=6.29 _
+                               zlow=-100. zhigh=100.
+
+                                                                ** trigger and list one event
+   DO i=1,[nevents]     
+
+*    MESSAGE processing event number [i] / [nevents]
+
+                                                                ** set the event vertex
+     gvertex        vx([i]) vy([i]) vz([i])
+     gspread        0 0 0 
+                                                                ** run the rest of the simulation
+     TRIG 1
+
+     gprint vert 1
+
+   ENDDO
+
+                                                                 ** this is the end of starsim
+   EXIT
+   
+Return
+

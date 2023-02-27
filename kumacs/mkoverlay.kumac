@@ -1,0 +1,12 @@
+MACRO mkoverlay pfile=in.fzd bfile=back.fzd ofile=out.fzd 
+
+gfile p [pfile]
+gfile b [bfile]
+gfile o [ofile]
+
+GBACK 420 420 0.75 107.0
+MODE  TPCE back 4201420
+
+trig 1
+
+RETURN

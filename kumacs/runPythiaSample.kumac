@@ -1,0 +1,111 @@
+**************************************************************************************************** 
+** MACRO runPythiasample
+** 
+** tag.pp200.pythia6_4_22.tune320.y2005i.gheisha_on 
+**
+MACRO runPythiaSample NEVENTS=10 RUN=10050 SET=1000 roots=200 WHERE=rcf VTX=vertex.dat
+
+                                                              ** run configuration
+   LIBRARY  =                                 $STAR_LIB 
+   TAG      =                                    y2005i
+                                                              ** pythia configuration
+   PYTHIA   =                        libPythia6_4_23.so
+   ETAmin   =                                     -10.0 
+   ETAmax   =                                     +10.0 
+
+                                                               ** vertex in cm
+   XVERTEX  =                                     0.000 
+   YVERTEX  =                                     0.000
+   ZVERTEX  =                                     0.000
+
+   XSIGMA   =                                     0.010 
+   YSIGMA   =                                     0.010
+   ZSIGMA   =                                    60.000
+
+
+** VTX_FILE = [WHERE][RUN]_[SET]_[NEVENTS]evts.vertex
+** shell root -q -v mkvertex.C\(\"[VTX_FILE]\",[SET],[NEVENTS]\)
+                                                                   ** read in event vertex
+   v/cr v([NEVENTS])  I
+   v/cr vx([NEVENTS]) R
+   v/cr vy([NEVENTS]) R
+   v/cr vz([NEVENTS]) R
+   v/read v,vx,vy,vz [VTX]     
+
+   FILE     = [WHERE][RUN]_[SET]_[NEVENTS]evts_pythia.fzd
+   gfile o [FILE]
+                                                                ** setup random number generator
+                                                                ** run number, and starting event
+   rndm [SET] [RUN]
+   istart=[SET]-1000
+   rung [RUN] [istart]
+                                                                ** setup geometry 
+   detp    geom [TAG] 
+   gexec   [LIBRARY]/geometry.so
+   gexec   [LIBRARY]/gstar.so
+   gclose  all
+
+                                                                ** configure pythia
+   exec select_pythia [PYTHIA] [LIBRARY]                        ** select pythia version 
+   TFM = "http://projects.hepforge.org/pythia6/"                ** RTFM for more information
+
+                                                  
+                                                                ** setup the collision kinematics for pythia
+   frame CMS
+   beam  p p
+   ener  [ROOTS]                          
+                                                                ** set the pythia tune
+   MSEL 1            !- Total cross section, i.e. elastic+inelastic D=1
+   TUNE 320          !- Perugia 0
+
+                                                                ** setup histograms w/ title
+   title [file] [tag] [run] [set] [pythia]
+
+                                                                ** trigger and list one event
+   DO i=1,[nevents]     
+                                                                ** set the event vertex
+     gvertex        vx([i]) vy([i]) vz([i])
+     gspread        0 0 0 
+                                                                ** run the rest of the simulation
+     TRIG 1
+     gprint vert 1
+
+   ENDDO
+
+                                                                 ** this is the end of starsim
+   EXIT
+   
+Return
+
+****************************************************************************************************
+** MACRO select_pythia
+**
+** Selects the pythia library and loads the interactive pythia command definitions.  Additionally,
+** it flags several decay modes as stable so that geant will handle them.
+**
+MACRO select_pythia pythia=libpythia_6410t.so path=$STAR_LIB
+
+** message Loading [path]/[pythia]
+   GExec [path]/[pythia]
+** message Loading [path]/bpythia.so
+   GExec [path]/bpythia.so
+
+   ****************************************************************
+   ** These particles will be decayed by geant instead of pythia **
+   MDCY (102,1)=0  ! PI0 111
+   MDCY (106,1)=0  ! PI+ 211
+   MDCY (109,1)=0  ! ETA 221
+   MDCY (116,1)=0  ! K+ 321
+   MDCY (112,1)=0  ! K_SHORT 310
+   MDCY (105,1)=0  ! K_LONG 130
+   MDCY (164,1)=0  ! LAMBDA0 3122
+   MDCY (167,1)=0  ! SIGMA0 3212
+   MDCY (162,1)=0  ! SIGMA- 3112
+   MDCY (169,1)=0  ! SIGMA+ 3222
+   MDCY (172,1)=0  ! Xi- 3312
+   MDCY (174,1)=0  ! Xi0 3322
+   MDCY (176,1)=0  ! OMEGA- 3334
+   ****************************************************************
+
+Return
+

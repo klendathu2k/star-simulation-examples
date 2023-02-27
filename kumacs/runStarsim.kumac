@@ -1,0 +1,125 @@
+**************************************************************************************************** 
+** MACRO simWRequest
+** 
+** A macro to generate MC events for the spin pwg W simulation request. 
+**
+MACRO runStarsim NEVENTS=1 RUN=10000 SET=1000 CONFIG=QCD WHERE=rcf roots=200
+
+                                                              ** run configuration
+   LIBRARY  =                   $STAR_LIB 
+   TAG      =                      y2009a
+   FIELD    =                        -5.0
+
+                                                              ** pythia configuration
+   PYTHIA   =          libPythia6_4_22.so 
+   MYTUNE   =                         100
+   PTmin    =                         0.0 
+   PTmax    =                        -1.0 
+   ETAmin   =                       -10.0 
+   ETAmax   =                       +10.0 
+
+                                                               ** vertex in cm
+   XVERTEX  =                       0.000 
+   YVERTEX  =                       0.000
+   ZVERTEX  =                      -2.000
+
+   XSIGMA   =                       0.015 
+   YSIGMA   =                       0.015
+   ZSIGMA   =                      42.000
+                                                                ** open output file
+   FILE     = [WHERE]//[RUN]_[SET]_[NEVENTS]evts.fzd
+   gfile o [FILE]
+
+
+                                                                ** setup random number generator
+                                                                ** run number, and starting event
+   rndm [RUN] [SET]
+   istart=[SET]-1000
+   rung [RUN] [istart]
+                                                                ** setup geometry 
+   detp    geom [TAG] field=[field]
+   gexec   [LIBRARY]/geometry.so
+   gexec   [LIBRARY]/gstar.so
+   gclose  all
+
+                                                                ** configure pythia
+   exec select_pythia [PYTHIA] [LIBRARY]                        ** select pythia version 
+   TFM = "http://projects.hepforge.org/pythia6/"                ** RTFM for more information
+
+                                                  
+
+                                                                ** setup the collision kinematics for pythia
+   frame CMS
+   beam  p p
+   ener  [ROOTS]                       
+                                                                ** set the pythia tune
+   CALL PyTUNE([MYTUNE])
+
+                                                                ** setup the vertex
+   gvertex   [xvertex] [yvertex] [zvertex]
+   gspread   [xsigma]  [ysigma]  [zsigma]
+
+                                                                ** setup histograms w/ title
+   title [file] geom [tag] config [config]
+
+                                                                ** setup the requested interaction
+   exec  [config] 
+                                                                ** trigger and list one event
+   trig 1 
+   call pylist(1)                                
+
+   DO i=2,[nevents]
+                                                                ** run the rest of the simulation
+     TRIG 1
+
+   ENDDO
+
+                                                                 ** this is the end of starsim
+   EXIT
+   
+Return
+
+****************************************************************************************************
+** MACRO select_pythia
+**
+** Selects the pythia library and loads the interactive pythia command definitions.  Additionally,
+** it flags several decay modes as stable so that geant will handle them.
+**
+MACRO select_pythia pythia=libpythia_6410t.so path=$STAR_LIB
+
+   GExec [path]/[pythia]
+   GExec [path]/bpythia.so
+
+   ****************************************************************
+   ** These particles will be decayed by geant instead of pythia **
+   MDCY (102,1)=0  ! PI0 111
+   MDCY (106,1)=0  ! PI+ 211
+   MDCY (109,1)=0  ! ETA 221
+   MDCY (116,1)=0  ! K+ 321
+   MDCY (112,1)=0  ! K_SHORT 310
+   MDCY (105,1)=0  ! K_LONG 130
+   MDCY (164,1)=0  ! LAMBDA0 3122
+   MDCY (167,1)=0  ! SIGMA0 3212
+   MDCY (162,1)=0  ! SIGMA- 3112
+   MDCY (169,1)=0  ! SIGMA+ 3222
+   MDCY (172,1)=0  ! Xi- 3312
+   MDCY (174,1)=0  ! Xi0 3322
+   MDCY (176,1)=0  ! OMEGA- 3334
+   ****************************************************************
+
+Return
+
+
+****************************************************************************************************
+** MACRO QCD
+**
+** Configure the physics for QCD with PT > 35
+**
+MACRO QCD
+
+   ckin(3)=+0.0                 ! no minimum
+   ckin(4)=-1.0                 ! no maximum
+   msel 1
+
+RETURN 
+

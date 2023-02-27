@@ -1,0 +1,67 @@
+MACRO runAuAu200GeV name=blah set=1 nevents=1 control=control.hijing run=10030
+
+
+*************************************************************
+** Configuration
+**
+
+   LIBRARY =                                        $STAR_LIB
+   BINARY  =                                        $STAR_BIN
+   TAG     =                                           y2010a
+   FIELD   =                                             +5.0
+
+   HIJING  =                                       hijing_382  
+
+   PTmin   =                                            0.000
+   PTmax   =                                          100.000
+   ETAmin  =                                          -6.0
+   ETAmax  =                                          +6.0
+   Zmin    =                                         -200.000
+   Zmax    =                                         +200.000
+
+**
+*************************************************************
+
+
+
+*************************************************************
+** Setup random number generator
+   PID = $PID
+*  TIME = $shell('date +%s')
+*  NANO = $shell('date +%N')
+*  TIME = [TIME] + 1000000*[SET]
+
+   RNDM [SET] [PID]
+
+
+
+*************************************************************
+** Setup Geometry
+   DETP GEOM [TAG] field=[FIELD]
+   GEXEC [LIBRARY]/geometry.so
+   GEXEC [LIBRARY]/gstar.so
+   GCLOS all
+
+
+   GVERTEX 0. 0. 0.
+   GSPREAD 0.3 0.3 38.0
+
+
+*************************************************************
+** Setup data input
+   MESSAGE Generating input events
+   GKINE -1 0 [PTmin] [PTmax] [ETAmin] [ETAmax] 0.000 6.283 [Zmin] [Zmax]
+   USER/INPUT please evgen.1.nt
+
+
+*************************************************************
+** Setup output file and generate events
+   MESSAGE Running GEANT simulation output is [NAME].fzd
+   GFILE o [NAME].fzd
+   TRIG [nevents]
+
+   EXIT
+
+RETURN
+
+
